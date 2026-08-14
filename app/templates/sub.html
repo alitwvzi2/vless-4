@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ panel_title }} · اشتراک {{ u.name }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="sub-shell">
+    <div class="sub-card">
+      <div class="sub-brand">
+        <span class="signal-mark"></span>
+        <div>
+          <h1>{{ panel_title }}</h1>
+          <span class="tag">صفحه‌ی اشتراک شما</span>
+        </div>
+      </div>
+
+      <div class="sub-who">
+        <div class="name">
+          {{ u.name }}
+          <span class="badge {{ u.status }}">{{
+            {"active": "فعال", "disabled": "غیرفعال", "expired": "منقضی", "quota_exceeded": "اتمام حجم"}[u.status]
+          }}</span>
+        </div>
+        {% if u.note %}<div class="muted">{{ u.note }}</div>{% endif %}
+      </div>
+
+      <div class="sub-stats">
+        <div class="sub-stat">
+          <span class="k">مصرف</span>
+          <span class="v">{{ u.mb_total }} MB{% if u.data_limit_mb %} / {{ u.data_limit_mb }} MB{% else %} / نامحدود{% endif %}</span>
+        </div>
+        {% if u.quota_pct is not none %}
+        <div class="sub-stat">
+          <span class="k">درصد مصرف</span>
+          <span class="v">
+            <span class="quota-wrap">
+              <span class="quota-bar"><span style="width:{{ u.quota_pct }}%"></span></span>
+              {{ u.quota_pct }}%
+            </span>
+          </span>
+        </div>
+        {% endif %}
+        {% if u.expires_at %}
+        <div class="sub-stat">
+          <span class="k">انقضا</span>
+          <span class="v">{{ u.expires_at[:10] }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-section-title">کد QR</div>
+        <div class="sub-qr">
+          <img src="/users/{{ u.uuid }}/qr.png" alt="QR" width="190" height="190">
+        </div>
+        <span class="muted">با اپلیکیشن کلاینت (v2rayNG، Hiddify، Shadowrocket و…) اسکن کن</span>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-section-title">لینک کانفیگ (تکی)</div>
+        <div class="link-row">
+          <input type="text" class="mono" readonly value="{{ u.link }}" id="cfg-link">
+          <button type="button" class="copy-btn" onclick="copyText(document.getElementById('cfg-link').value)">کپی</button>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-section-title">لینک اشتراک (ساب‌لینک) — برای وارد کردن در اپ</div>
+        <div class="link-row">
+          <input type="text" class="mono" readonly value="{{ u.raw_sub_link }}" id="sub-link">
+          <button type="button" class="copy-btn" onclick="copyText(document.getElementById('sub-link').value)">کپی</button>
+        </div>
+        <span class="muted">این لینک رو داخل اپ کلاینت به‌عنوان Subscription/Sub اضافه کن تا هر وقت تنظیمات عوض شد، خودکار به‌روز بشه.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">انجام شد</div>
+  <script>
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg || 'انجام شد';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => toast('کپی شد'));
+    }
+  </script>
+</body>
+</html>

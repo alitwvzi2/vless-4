@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}نمای کلی{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h2>نمای کلی</h2>
+    <span class="muted">وضعیت زنده‌ی سرور و کاربران</span>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="num">{{ total_users }}</div>
+      <div class="label">تعداد کل کاربران</div>
+    </div>
+    <div class="stat-card accent-on">
+      <div class="num">{{ active_count }}</div>
+      <div class="label">کاربران فعال</div>
+    </div>
+    <div class="stat-card accent-off">
+      <div class="num">{{ expired_count }}</div>
+      <div class="label">منقضی / اتمام حجم</div>
+    </div>
+    <div class="stat-card accent-beacon">
+      <div class="num">{{ online_count }}</div>
+      <div class="label">اتصال زنده الان</div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="num">{{ total_gb }} GB</div>
+      <div class="label">کل ترافیک مصرفی</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ uptime_str }}</div>
+      <div class="label">مدت آپتایم سرور</div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <div><span class="k">دامنه:</span><code>{{ domain }}</code></div>
+    <div><span class="k">مسیر وب‌سوکت:</span><code>{{ wspath }}</code></div>
+  </div>
+
+  <div class="section-title">پرمصرف‌ترین کاربران</div>
+  {% if top_users %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>نام</th><th>وضعیت</th><th>مصرف</th></tr>
+      </thead>
+      <tbody>
+        {% for u in top_users %}
+        <tr>
+          <td>{{ u.name }}</td>
+          <td><span class="badge {{ u.status }}">{{
+            {"active": "فعال", "disabled": "غیرفعال", "expired": "منقضی", "quota_exceeded": "اتمام حجم"}[u.status]
+          }}</span></td>
+          <td>{{ u.mb_total }} MB</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">هنوز کاربری اضافه نشده. از صفحه‌ی <a href="/users">کاربران</a> شروع کن.</div>
+  {% endif %}
+{% endblock %}

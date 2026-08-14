@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}تنظیمات{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h2>تنظیمات</h2>
+    <span class="muted">مدیریت پنل</span>
+  </div>
+
+  {% if message %}<div class="flash">{{ message }}</div>{% endif %}
+
+  <div class="settings-card">
+    <h3>تغییر رمز ورود پنل</h3>
+    <p class="muted">
+      {% if has_custom_password %}
+        در حال حاضر یک رمز سفارشی ذخیره شده. با تغییر رمز env variable مربوطه دیگه استفاده نمی‌شه.
+      {% else %}
+        الان از رمز پیش‌فرض تعریف‌شده در متغیر محیطی ADMIN_PASSWORD استفاده می‌کنی. حتماً عوضش کن.
+      {% endif %}
+    </p>
+    <form method="post" action="/settings/password" class="settings-form">
+      <div class="field">
+        <label>رمز فعلی</label>
+        <input type="password" name="current_password" required>
+      </div>
+      <div class="field">
+        <label>رمز جدید</label>
+        <input type="password" name="new_password" required minlength="6">
+      </div>
+      <div class="field">
+        <label>تکرار رمز جدید</label>
+        <input type="password" name="confirm_password" required minlength="6">
+      </div>
+      <button type="submit" class="btn-primary">ذخیره رمز جدید</button>
+    </form>
+  </div>
+
+  <div class="settings-card">
+    <h3>اطلاعات سرور</h3>
+    <div class="info-box">
+      <div><span class="k">دامنه:</span><code>{{ domain }}</code></div>
+      <div><span class="k">مسیر وب‌سوکت فعلی:</span><code>{{ wspath }}</code></div>
+    </div>
+    <p class="muted">دامنه به‌صورت خودکار از <code>RAILWAY_PUBLIC_DOMAIN</code> خونده می‌شه.</p>
+  </div>
+
+  <div class="settings-card">
+    <h3>تنظیمات کانفیگ (اعمال روی همه‌ی کاربران)</h3>
+    <p class="muted">
+      این تنظیمات پایه‌ی هر لینک VLESS ساخته‌شده هستن. چون لینک‌ها لحظه‌ای از همین تنظیمات ساخته می‌شن،
+      با ذخیره‌ی تغییرات، هم کاربرای قبلی و هم کاربرای بعدی خودکار به‌روز می‌شن.
+    </p>
+    <form method="post" action="/settings/config" class="settings-form config-form">
+      <div class="field">
+        <label>پورت</label>
+        <input type="number" name="port" min="1" max="65535" value="{{ config.port }}" required>
+      </div>
+      <div class="field">
+        <label>Security</label>
+        <select name="security">
+          {% for opt in security_choices %}
+          <option value="{{ opt }}" {{ "selected" if config.security == opt else "" }}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>ALPN</label>
+        <select name="alpn">
+          {% for opt in alpn_choices %}
+          <option value="{{ opt }}" {{ "selected" if config.alpn == opt else "" }}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Fingerprint (fp)</label>
+        <select name="fingerprint">
+          {% for opt in fingerprint_choices %}
+          <option value="{{ opt }}" {{ "selected" if config.fingerprint == opt else "" }}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>مسیر وب‌سوکت</label>
+        <input type="text" name="ws_path" value="{{ config.ws_path }}" placeholder="/tun" required>
+      </div>
+      <div class="field">
+        <label>SNI سفارشی (خالی = همون دامنه)</label>
+        <input type="text" name="sni" value="{{ config.sni }}" placeholder="{{ domain }}">
+      </div>
+      <button type="submit" class="btn-primary">ذخیره‌ی تنظیمات کانفیگ</button>
+    </form>
+  </div>
+
+  <div class="settings-card">
+    <h3>مدیریت گروه‌ها / دسته‌بندی کاربران</h3>
+    <p class="muted">کاربرا رو می‌تونی توی گروه‌های دلخواه (مثلا VIP، تست، خانواده) دسته‌بندی کنی.</p>
+
+    <div class="group-list">
+      {% for g in groups %}
+      <div class="group-chip">
+        <span>{{ g }}</span>
+        <span class="muted">({{ group_counts.get(g, 0) }} کاربر)</span>
+        {% if g != default_group %}
+        <form method="post" action="/settings/groups/delete" onsubmit="return confirm('گروه {{ g }} حذف بشه؟ کاربراش می‌رن توی گروه {{ default_group }}.');">
+          <input type="hidden" name="group_name" value="{{ g }}">
+          <button type="submit" class="chip-x" title="حذف گروه">✕</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <form method="post" action="/settings/groups/add" class="settings-form">
+      <div class="field">
+        <label>نام گروه جدید</label>
+        <input type="text" name="group_name" placeholder="مثلا: VIP" required>
+      </div>
+      <button type="submit" class="btn-primary">افزودن گروه</button>
+    </form>
+  </div>
+
+  <div class="settings-card danger-zone">
+    <h3>منطقه‌ی خطر</h3>
+    <p class="muted">ریست ترافیک همه‌ی کاربران به صفر — این کار برگشت‌ناپذیره.</p>
+    <form method="post" action="/settings/reset-all-traffic" onsubmit="return confirm('ترافیک همه‌ی کاربرا صفر بشه؟ این کار برگشت‌ناپذیره.');">
+      <button type="submit" class="danger">ریست ترافیک همه</button>
+    </form>
+  </div>
+{% endblock %}

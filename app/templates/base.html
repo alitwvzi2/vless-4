@@ -1,1 +1,65 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ panel_title }} · {% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="side-brand">
+        <span class="signal-mark"></span>
+        <div>
+          <h1>{{ panel_title }}</h1>
+          <span class="tag">مدیریت تانل VLESS</span>
+        </div>
+      </div>
 
+      <nav class="side-nav">
+        <a href="/dashboard" class="{{ 'active' if active_page == 'overview' else '' }}">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          نمای کلی
+        </a>
+        <a href="/users" class="{{ 'active' if active_page == 'users' else '' }}">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          کاربران
+          {% if online_count %}<span class="side-badge">{{ online_count }} آنلاین</span>{% endif %}
+        </a>
+        <a href="/settings" class="{{ 'active' if active_page == 'settings' else '' }}">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.5.5 0 00.12-.64l-1.92-3.32a.5.5 0 00-.6-.22l-2.39.96a7.4 7.4 0 00-1.62-.94l-.36-2.54a.5.5 0 00-.5-.42h-3.84a.5.5 0 00-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 00-.6.22L3.36 8.84a.5.5 0 00.12.64l2.03 1.58c-.05.3-.08.62-.08.94s.02.64.07.94L3.47 14.5a.5.5 0 00-.12.64l1.92 3.32c.14.24.4.32.6.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.1.5 0 .6-.22l1.92-3.32a.5.5 0 00-.12-.64l-2.03-1.58zM12 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z"/></svg>
+          تنظیمات
+        </a>
+      </nav>
+
+      <div class="side-foot">
+        <a href="/logout" class="btn-outline full">خروج از پنل</a>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="topbar-mobile">
+        <span class="signal-mark"></span>
+        <b>{{ panel_title }}</b>
+      </div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <div class="toast" id="toast">انجام شد</div>
+
+  <script>
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg || 'انجام شد';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => toast('کپی شد'));
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

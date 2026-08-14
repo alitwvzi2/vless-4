@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}کاربران{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h2>کاربران</h2>
+    <span class="muted">{{ users|length }} کاربر{% if active_group %} در گروه «{{ active_group }}»{% endif %}</span>
+  </div>
+
+  <div class="group-tabs">
+    <a href="/users" class="group-tab {{ 'active' if not active_group else '' }}">
+      همه <span class="count">{{ total_all_users }}</span>
+    </a>
+    {% for g in groups %}
+    <a href="/users?group={{ g|urlencode }}" class="group-tab {{ 'active' if active_group == g else '' }}">
+      {{ g }} <span class="count">{{ group_counts.get(g, 0) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <details class="add-box" {{ "open" if not users else "" }}>
+    <summary>+ افزودن کاربر جدید</summary>
+    <form method="post" action="/users/add" class="add-form-grid">
+      <div class="field">
+        <label>اسم دلخواه</label>
+        <input type="text" name="name" placeholder="مثلا: احمد">
+      </div>
+      <div class="field">
+        <label>یادداشت (اختیاری)</label>
+        <input type="text" name="note" placeholder="مثلا: مشترک تیر ماه">
+      </div>
+      <div class="field">
+        <label>انقضا (روز، ۰ = هیچ‌وقت)</label>
+        <input type="number" name="expires_in_days" min="0" value="0">
+      </div>
+      <div class="field">
+        <label>محدودیت حجم (GB، ۰ = نامحدود)</label>
+        <input type="number" step="0.5" name="data_limit_gb" min="0" value="0">
+      </div>
+      <div class="field">
+        <label>گروه</label>
+        <select name="group">
+          {% for g in groups %}
+          <option value="{{ g }}" {{ "selected" if active_group == g else "" }}>{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>یا گروه تازه (اختیاری)</label>
+        <input type="text" name="new_group" placeholder="مثلا: VIP">
+      </div>
+      <button type="submit" class="btn-primary">ساخت کاربر</button>
+    </form>
+  </details>
+
+  {% if users %}
+  <div class="user-cards">
+    {% for u in users %}
+    <div class="user-card">
+      <div class="who">
+        <span class="dot {{ 'on' if u.online else ('warn' if u.status == 'active' else 'off') }}"></span>
+        <div>
+          <div class="name">
+            {{ u.name }}
+            <span class="badge {{ u.status }}">{{
+              {"active": "فعال", "disabled": "غیرفعال", "expired": "منقضی", "quota_exceeded": "اتمام حجم"}[u.status]
+            }}</span>
+            {% if u.online %}<span class="badge online">آنلاین</span>{% endif %}
+            <span class="badge group-badge">{{ u.group }}</span>
+          </div>
+          {% if u.note %}<div class="note">{{ u.note }}</div>{% endif %}
+          <div class="traffic">
+            <span>↑ <b>{{ u.mb_up }} MB</b></span>
+            <span>↓ <b>{{ u.mb_down }} MB</b></span>
+            {% if u.quota_pct is not none %}
+            <span class="quota-wrap">
+              <span class="quota-bar"><span style="width:{{ u.quota_pct }}%"></span></span>
+              {{ u.quota_pct }}%
+            </span>
+            {% endif %}
+            {% if u.expires_at %}<span class="expiry">انقضا: {{ u.expires_at[:10] }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="link-row">
+        <input type="text" class="mono" readonly value="{{ u.link }}" id="link-{{ u.uuid }}">
+        <button type="button" class="copy-btn" onclick="copyText(document.getElementById('link-{{ u.uuid }}').value)">کپی لینک</button>
+      </div>
+
+      <div class="link-row">
+        <input type="text" class="mono" readonly value="{{ u.sub_link }}" id="sub-{{ u.uuid }}">
+        <button type="button" class="copy-btn" onclick="copyText(document.getElementById('sub-{{ u.uuid }}').value)">کپی ساب‌لینک</button>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn-outline" onclick="document.getElementById('qr-{{ u.uuid }}').classList.toggle('show')">QR کد</button>
+        <button type="button" class="btn-outline" onclick="document.getElementById('edit-{{ u.uuid }}').classList.toggle('show')">ویرایش</button>
+        <form method="post" action="/users/{{ u.uuid }}/reset-traffic" onsubmit="return confirm('ترافیک این کاربر صفر بشه؟');">
+          <button type="submit" class="btn-outline">ریست ترافیک</button>
+        </form>
+        <form method="post" action="/users/{{ u.uuid }}/regenerate" onsubmit="return confirm('لینک قبلی این کاربر از کار می‌افته و لینک جدید ساخته می‌شه. ادامه بدم؟');">
+          <button type="submit" class="btn-outline">بازسازی لینک</button>
+        </form>
+        <form method="post" action="/users/{{ u.uuid }}/toggle">
+          <button type="submit" class="btn-outline">{{ "غیرفعال کن" if u.enabled else "فعال کن" }}</button>
+        </form>
+        <form method="post" action="/users/{{ u.uuid }}/delete" onsubmit="return confirm('حذف بشه؟');">
+          <button type="submit" class="danger">حذف</button>
+        </form>
+      </div>
+
+      <div class="qr-panel" id="qr-{{ u.uuid }}">
+        <img src="/users/{{ u.uuid }}/qr.png" alt="QR" width="180" height="180">
+        <span class="muted">با اسکنر اپ کلاینت (v2rayNG / Hiddify و…) اسکن کن</span>
+      </div>
+
+      <form method="post" action="/users/{{ u.uuid }}/edit" class="edit-panel" id="edit-{{ u.uuid }}">
+        <div class="field">
+          <label>اسم</label>
+          <input type="text" name="name" value="{{ u.name }}">
+        </div>
+        <div class="field">
+          <label>یادداشت</label>
+          <input type="text" name="note" value="{{ u.note }}">
+        </div>
+        <div class="field">
+          <label>انقضا (روز از الان، ۰ = هیچ‌وقت، خالی = بدون تغییر)</label>
+          <input type="number" name="expires_in_days" min="0" placeholder="بدون تغییر">
+        </div>
+        <div class="field">
+          <label>محدودیت حجم (GB، ۰ = نامحدود، خالی = بدون تغییر)</label>
+          <input type="number" step="0.5" name="data_limit_gb" min="0" placeholder="بدون تغییر">
+        </div>
+        <div class="field">
+          <label>گروه</label>
+          <select name="group">
+            <option value="">بدون تغییر</option>
+            {% for g in groups %}
+            <option value="{{ g }}" {{ "selected" if u.group == g else "" }}>{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>یا گروه تازه (اختیاری)</label>
+          <input type="text" name="new_group" placeholder="مثلا: VIP">
+        </div>
+        <button type="submit" class="btn-primary">ذخیره تغییرات</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">هنوز کاربری اضافه نکردی — از فرم بالا شروع کن.</div>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // empty expires_in_days / data_limit_gb fields in the edit form should mean
+  // "don't change" -> server treats a missing/negative value as no-change,
+  // so we strip empty numeric fields before submit instead of sending 0.
+  document.querySelectorAll('.edit-panel').forEach(form => {
+    form.addEventListener('submit', () => {
+      form.querySelectorAll('input[type=number]').forEach(inp => {
+        if (inp.value === '') inp.disabled = true;
+      });
+    });
+  });
+</script>
+{% endblock %}
